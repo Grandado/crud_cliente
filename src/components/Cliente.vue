@@ -63,7 +63,7 @@
       :dismissableMask="true"
     >
       <!-- <Formulario :dados="cliente" /> -->
-      <form>
+      <form @submit.prevent="handleSubmit(!v$.$invalid)">
         <div class="p-fluid formgrid grid tabela-cadastro">
           <div class="field col-12">
             <label
@@ -82,7 +82,7 @@
             <label
               for="email"
               :class="{ 'p-error': v$.cliente.email.$invalid && submitted }"
-              >E-mail</label
+              >E-mail*</label
             >
             <span class="p-input-icon-right">
               <i class="pi pi-envelope" />
@@ -99,7 +99,7 @@
           <div class="field col-6 md:col-3">
             <label
               :class="{ 'p-error': v$.cliente.telefone.$invalid && submitted }"
-              >Telefone</label
+              >Telefone*</label
             >
             <span class="p-input-icon-right">
               <i class="pi pi-phone" />
@@ -118,7 +118,7 @@
           <div class="field col-6 md:col-3 sm:col-4">
             <label
               :class="{ 'p-error': v$.cliente.celular.$invalid && submitted }"
-              >Celular</label
+              >Celular*</label
             >
             <span class="p-input-icon-right">
               <i class="pi pi-mobile" />
@@ -136,7 +136,7 @@
 
           <div class="field col-6 md:col-3 sm:col-4">
             <label :class="{ 'p-error': v$.cliente.cpf.$invalid && submitted }"
-              >CPF</label
+              >CPF*</label
             >
             <InputMask
               mask="999.999.999-99"
@@ -152,7 +152,7 @@
 
           <div class="field col-6 md:col-3">
             <label :class="{ 'p-error': v$.cliente.cep.$invalid && submitted }"
-              >CEP</label
+              >CEP*</label
             >
             <InputMask
               mask="99999-999"
@@ -167,7 +167,7 @@
 
           <div class="field col-12 md:col-4">
             <label :class="{ 'p-error': v$.cliente.rua.$invalid && submitted }"
-              >Endereço</label
+              >Endereço*</label
             >
             <InputText
               v-model="v$.cliente.rua.$model"
@@ -193,7 +193,7 @@
           <div class="field col-12 md:col-3">
             <label
               :class="{ 'p-error': v$.cliente.bairro.$invalid && submitted }"
-              >Bairro</label
+              >Bairro*</label
             >
             <InputText
               v-model="v$.cliente.bairro.$model"
@@ -206,7 +206,7 @@
           <div class="field col-6 md:col-3">
             <label
               :class="{ 'p-error': v$.cliente.estado.$invalid && submitted }"
-              >Estado</label
+              >Estado*</label
             >
             <Dropdown
               v-model="v$.cliente.estado.$model"
@@ -224,7 +224,7 @@
           <div class="field col-6 md:col-3">
             <label
               :class="{ 'p-error': v$.cliente.cidade.$invalid && submitted }"
-              >Cidade</label
+              >Cidade*</label
             >
             <Dropdown
               v-model="v$.cliente.cidade.$model"
@@ -243,7 +243,7 @@
               :class="{
                 'p-error': v$.cliente.nascimento.$invalid && submitted,
               }"
-              >Data de Nascimento</label
+              >Data de Nascimento*</label
             >
             <Calendar
               v-model="v$.cliente.nascimento.$model"
@@ -260,28 +260,40 @@
           label="Cancelar"
           icon="pi pi-times"
           class="p-button-raised p-button-danger"
-          @submit.prevent="handleSubmit(!v$.$invalid)"
         />
         <Button
           label="Salvar"
           type="submit"
           icon="pi pi-check"
-          autofocus
           class="p-button-raised p-button-success"
-          @click="salvarCliente"
+          @click="salvarCliente(!v$.$invalid)"
         />
-        <p>{{ cliente }}</p>
       </template>
+    </Dialog>
+
+    <Dialog
+      header="Informações"
+      v-model:visible="infoModal"
+      :breakpoints="{ '960px': '90vw', '640px': '100vw' }"
+      :style="{ width: '50vw' }"
+      :modal="true"
+      :dismissableMask="true"
+      @hide="infoModal = false"
+    >
+      <InfoCliente :cliente="infoDados" />
     </Dialog>
   </div>
 </template>
 
 <script>
+import { email, required } from '@vuelidate/validators';
+import { useVuelidate } from '@vuelidate/core';
+
 import ClienteService from '../service/ClienteService';
 import EstadosService from '../service/EstadosService';
 import CidadesService from '../service/CidadesService';
-import { email, required } from '@vuelidate/validators';
-import { useVuelidate } from '@vuelidate/core';
+
+import InfoCliente from './ClienteInfo.vue';
 
 export default {
   name: 'Home',
@@ -309,11 +321,15 @@ export default {
         nascimento: '',
       },
       clienteModal: false,
+      infoModal: false,
+      infoDados: {},
       submitted: false,
       estados: null,
       cidades: null,
     };
   },
+
+  components: { InfoCliente },
 
   validations() {
     return {
@@ -357,13 +373,12 @@ export default {
   },
 
   created() {
-    this.clienteService = new ClienteService();
+    ClienteService.getClientes().then((res) => (this.clientes = res.data));
     this.estadosService = new EstadosService();
     this.cidadesService = new CidadesService();
   },
 
   mounted() {
-    this.clienteService.getClientes().then((data) => (this.clientes = data));
     this.estadosService.getEstados().then((data) => (this.estados = data));
   },
 
@@ -373,24 +388,35 @@ export default {
       this.submitted = false;
       this.clienteModal = true;
     },
+
+    infoCliente(dados) {
+      this.infoModal = true;
+      dados.nascimento = new Date(dados.nascimento);
+      this.infoDados = dados;
+    },
+
     fecharModal() {
       this.clienteModal = false;
       this.submitted = false;
     },
+
     editarCliente(cliente) {
+      this.preencherCidades(cliente.estado);
+      cliente.nascimento = new Date(cliente.nascimento);
       this.cliente = { ...cliente };
       this.clienteModal = true;
     },
-    salvarCliente() {
+
+    salvarCliente(isFormValid) {
       this.submitted = true;
-      /* console.log(this.cliente);
-      this.cliente.telefone = parseInt(this.cliente.telefone);
-      this.cliente.celular = parseInt(this.cliente.celular);
-      this.cliente.cep = parseInt(this.cliente.cep);
-      this.cliente.cpf = parseInt(this.cliente.cpf);
-      console.log(this.cliente); */
-      /*  this.clienteModal = false;
-      this.limparFormulario(); */
+      if (!isFormValid) {
+        return;
+      }
+      ClienteService.setCliente(this.cliente).then(() => {
+        this.limparFormulario();
+        this.fecharModal();
+        this.refreshClientes();
+      });
     },
 
     formatCPF(valor) {
@@ -407,25 +433,6 @@ export default {
         .then(
           (data) => (this.cidades = data.filter((e) => e.code == id_estado))
         );
-    },
-
-    handleSubmit(isFormValid) {
-      this.submitted = true;
-
-      if (!isFormValid) {
-        return;
-      }
-
-      this.limparFormulario();
-      this.fecharModal();
-    },
-
-    toggleDialog() {
-      this.showMessage = !this.showMessage;
-
-      if (!this.showMessage) {
-        this.limparFormulario();
-      }
     },
 
     limparFormulario() {
@@ -445,6 +452,10 @@ export default {
         nascimento: '',
       };
       this.submitted = false;
+    },
+
+    refreshClientes() {
+      ClienteService.getClientes().then((res) => (this.clientes = res.data));
     },
   },
 };

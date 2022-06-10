@@ -1,7 +1,13 @@
-export default class ClienteService {
+import http from '../http-common';
+
+class ClienteService {
   getClientes() {
-    return fetch('demo/data/products-small.json')
-      .then((res) => res.json())
-      .then((d) => d.data);
+    return http.get('/all');
+  }
+
+  setCliente(data) {
+    return http.post('/cadastrar', data);
   }
 }
+
+export default new ClienteService();
