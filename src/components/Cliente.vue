@@ -47,7 +47,7 @@
                 icon="pi pi-trash"
                 class="p-button-rounded p-button-danger p-button-sm"
                 v-tooltip.top="'Excluir'"
-                @click="excluirCliente(slotProps.data)"
+                @click="confirmarExcluirCliente(slotProps.data)"
               />
             </template>
           </Column>
@@ -260,6 +260,7 @@
           label="Cancelar"
           icon="pi pi-times"
           class="p-button-raised p-button-danger"
+          @click="fecharModal"
         />
         <Button
           label="Salvar"
@@ -281,6 +282,35 @@
       @hide="infoModal = false"
     >
       <InfoCliente :cliente="infoDados" />
+    </Dialog>
+
+    <Dialog
+      v-model:visible="excluirClienteModal"
+      :style="{ width: '450px' }"
+      header="Confirmação"
+      :modal="true"
+    >
+      <div class="confirmation-content">
+        <i class="pi pi-exclamation-triangle mr-3" style="font-size: 2rem" />
+        <span v-if="cliente"
+          >Deseja realmente excluir o cliente <b>{{ cliente.nome }}</b
+          >?</span
+        >
+      </div>
+      <template #footer>
+        <Button
+          label="Não"
+          icon="pi pi-times"
+          class="p-button-text"
+          @click="excluirClienteModal = false"
+        />
+        <Button
+          label="Sim"
+          icon="pi pi-check"
+          class="p-button-text"
+          @click="excluirCliente"
+        />
+      </template>
     </Dialog>
   </div>
 </template>
@@ -321,9 +351,11 @@ export default {
         nascimento: '',
       },
       clienteModal: false,
+      excluirClienteModal: false,
       infoModal: false,
       infoDados: {},
       submitted: false,
+      editar: false,
       estados: null,
       cidades: null,
     };
@@ -398,6 +430,7 @@ export default {
     fecharModal() {
       this.clienteModal = false;
       this.submitted = false;
+      this.limparFormulario();
     },
 
     editarCliente(cliente) {
@@ -405,6 +438,21 @@ export default {
       cliente.nascimento = new Date(cliente.nascimento);
       this.cliente = { ...cliente };
       this.clienteModal = true;
+      this.editar = true;
+    },
+
+    confirmarExcluirCliente(cliente) {
+      this.cliente = cliente;
+      this.excluirClienteModal = true;
+    },
+
+    excluirCliente() {
+      this.excluirClienteModal = false;
+      ClienteService.excluirCliente({ id: this.cliente._id }).then(() => {
+        this.limparFormulario();
+        this.fecharModal();
+        this.refreshClientes();
+      });
     },
 
     salvarCliente(isFormValid) {
@@ -412,11 +460,22 @@ export default {
       if (!isFormValid) {
         return;
       }
-      ClienteService.setCliente(this.cliente).then(() => {
-        this.limparFormulario();
-        this.fecharModal();
-        this.refreshClientes();
-      });
+
+      if (this.editar) {
+        ClienteService.alterCliente(this.cliente)
+          .then(() => {
+            this.limparFormulario();
+            this.fecharModal();
+            this.refreshClientes();
+          })
+          .catch(console.log);
+      } else {
+        ClienteService.setCliente(this.cliente).then(() => {
+          this.limparFormulario();
+          this.fecharModal();
+          this.refreshClientes();
+        });
+      }
     },
 
     formatCPF(valor) {
