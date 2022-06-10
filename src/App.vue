@@ -99,14 +99,35 @@ span.p-dropdown-label.p-inputtext,
   border-bottom: solid 1px var(--surface-300);
 }
 
+.p-dialog .p-dialog-content {
+  background-color: var(--surface-ground);
+  padding: 0.5rem;
+}
+
+.p-dialog .p-dialog-content form {
+  background-color: #ffffff;
+  padding: 1rem;
+  border-radius: 0.5rem;
+}
+
+.p-dialog .p-dialog-footer {
+  background-color: var(--surface-ground);
+  border-top: solid 1px var(--surface-300);
+}
+
 .p-dialog .tabela-cadastro {
   padding-top: 1rem;
+}
+
+.p-dialog label.p-error {
+  color: #b00020;
 }
 
 .p-dialog label {
   font-weight: bold;
   color: #3f51b5;
 }
+
 .p-dialog .p-inputtext {
   padding-top: 0.75rem;
   padding-bottom: 0.75rem;
