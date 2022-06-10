@@ -134,6 +134,9 @@ span.p-dropdown-label.p-inputtext,
   padding-left: 0.75rem;
 }
 
+.p-dialog #info-cliente {
+  padding: inherit;
+}
 .p-dialog #info-cliente input {
   opacity: 100;
 }
