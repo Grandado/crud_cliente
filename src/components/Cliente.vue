@@ -336,6 +336,7 @@ export default {
       productDialog: false,
       clientes: null,
       cliente: {
+        id: '',
         nome: '',
         email: '',
         cpf: '',
@@ -448,7 +449,7 @@ export default {
 
     excluirCliente() {
       this.excluirClienteModal = false;
-      ClienteService.excluirCliente({ id: this.cliente._id }).then(() => {
+      ClienteService.excluirCliente({ id: this.cliente.id }).then(() => {
         this.limparFormulario();
         this.fecharModal();
         this.refreshClientes();
